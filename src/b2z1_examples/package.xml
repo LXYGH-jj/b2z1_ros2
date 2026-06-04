@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>b2z1_examples</name>
+  <version>0.0.1</version>
+  <description>Minimal examples for coordinated B2 and Z1 commands.</description>
+  <maintainer email="liu@example.com">liu</maintainer>
+  <license>BSD-3-Clause</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>b2z1_msgs</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>b2z1_coordinator</name>
+  <version>0.0.1</version>
+  <description>Simple coordinator for sending commands to both B2 and Z1.</description>
+  <maintainer email="liu@example.com">liu</maintainer>
+  <license>BSD-3-Clause</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>trajectory_msgs</depend>
+  <depend>b2z1_msgs</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
