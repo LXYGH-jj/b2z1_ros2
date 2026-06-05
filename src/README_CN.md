@@ -2,53 +2,152 @@
 
 本工作空间包含一个用于宇树（Unitree）B2 + Z1 的轻量级 ROS2 控制骨架，以及一条 MuJoCo 验证路径，用于在真机测试前验证命令流、姿态和演示行为。
 
-当前仓库有意将以下两个关注点分离：
+当前仓库明确分成两条主线：
 
-- **MuJoCo 验证**：针对仅 B2 和仅 Z1 的演示进行快速迭代。
-- **真机集成**：尽可能复用官方的宇树代码路径。
+- **真机主线**：B2 与 Z1 的真实执行路径，尽量贴近官方代码
+- **仿真主线**：MuJoCo 验证路径，用于观察控制效果是否符合预期
 
-## 1. 仓库范围
+## 1. 两条主线
+
+### 1.1 真机主线
+
+目标：
+
+- 让 B2 的真机 lowcmd 路径清楚可用
+- 让 Z1 的真机轨迹控制路径清楚可用
+
+真机主线涉及的主要包：
+
+- `real/b2/b2z1_b2_lowcmd`
+- `real/z1/b2z1_z1_control`
+- `shared/b2/b2z1_b2_trajectories`
+- `shared/z1/b2z1_z1_trajectories`
+- `bringup/b2z1_bringup`
+- `third_party/unitree/unitree_go`
+- `third_party/unitree/unitree_api`
+
+真机 launch 入口：
+
+- `ros2 launch b2z1_bringup real/b2_real_lowcmd_stand.launch.py`
+- `ros2 launch b2z1_bringup b2_stand.launch.py`
+- `ros2 launch b2z1_bringup real/z1_real_waypoint.launch.py`
+- `ros2 launch b2z1_bringup z1_reach.launch.py`
+
+### 1.2 MuJoCo 仿真主线
+
+目标：
+
+- 在真机测试前先验证命令流
+- 在 MuJoCo 里验证姿态、时序和验证行为
+
+仿真主线涉及的主要包：
+
+- `sim/mujoco/b2z1_mujoco_bridge`
+- `sim/mujoco/b2z1_examples`
+- `sim/mujoco/simulate/b2z1_mujoco`
+- `shared/common/b2z1_msgs`
+- `shared/b2/b2z1_b2_trajectories`
+- `shared/z1/b2z1_z1_trajectories`
+- `bringup/b2z1_bringup`
+
+仿真 launch 入口：
+
+- `ros2 launch b2z1_bringup b2_stand_validation_sim.launch.py network_interface:=lo`
+- `ros2 launch b2z1_bringup z1_waypoint_validation_sim.launch.py network_interface:=lo`
+- 内部会继续落到 `launch/mujoco/*`
+
+### 1.3 重要边界
+
+当前仓库 **并不包含** 完整的 `B2Z1` 联合控制主线。
+
+当前主线更准确地说是：
+
+- B2 真机控制
+- Z1 真机控制
+- 对这些控制语义的 MuJoCo 验证
+
+## 2. 仓库范围
+
+当前工作空间目录树：
+
+```text
+src/
+├── bringup/
+│   └── b2z1_bringup
+├── real/
+│   ├── b2/
+│   │   └── b2z1_b2_lowcmd
+│   └── z1/
+│       └── b2z1_z1_control
+├── shared/
+│   ├── b2/
+│   │   └── b2z1_b2_trajectories
+│   ├── common/
+│   │   └── b2z1_msgs
+│   └── z1/
+│       └── b2z1_z1_trajectories
+├── sim/
+│   └── mujoco/
+│       ├── b2z1_examples
+│       ├── b2z1_mujoco_bridge
+│       └── simulate/b2z1_mujoco
+├── third_party/
+│   └── unitree/
+│       ├── unitree_api
+│       └── unitree_go
+└── legacy/
+    └── b2z1_coordinator
+```
+
+当前分层原则：
+
+- `bringup/`：只放启动入口
+- `real/`：真机执行后端
+- `shared/`：共享轨迹、共享消息、共享运动语义
+- `sim/`：MuJoCo 仿真执行和验证入口
+- `third_party/`：保留在仓库内的上游依赖
+- `legacy/`：历史上的联合控制实验代码，不属于当前主线
 
 本工作空间中的主要功能包包括：
 
-- `b2z1_msgs`：自定义 ROS2 消息定义。
-- `b2z1_b2_bridge`：B2 命令桥接器。
-- `b2z1_coordinator`：可选的协调节点，用于未来统一的命令路由。
-- [b2z1_examples](file:///home/liu/b2z1_ros2_ws/src/b2z1_examples/resource/b2z1_examples)：用于仅 B2 和仅 Z1 验证的演示脚本。
-- `b2z1_mujoco_bridge`：将 ROS2 演示命令桥接到 MuJoCo 底层命令的桥梁。
-- `b2z1_bringup`：用于 MuJoCo 验证演示的启动文件。
+- `b2z1_b2_lowcmd`：B2 真机 lowcmd 执行后端。
+- `b2z1_z1_control`：Z1 真机轨迹控制执行后端，对齐官方 `z1_ros2`。
+- `b2z1_b2_trajectories`：B2 共享轨迹层。
+- `b2z1_z1_trajectories`：Z1 共享轨迹层。
+- `b2z1_msgs`：仿真验证路径使用的实验性命令消息定义。
+- `b2z1_examples`：仿真验证脚本。
+- `b2z1_mujoco_bridge`：MuJoCo 仿真执行后端。
+- `b2z1_bringup`：实机/仿真启动入口整理包。
 - `simulate/b2z1_mujoco`：B2Z1 MuJoCo 场景和资源文件。
-- `unitree_api`：从官方宇树 ROS2 工作空间复制并保留在此处的供应商依赖项，用于可重现的本地构建。
 
-## 2. 从参考代码中复用的内容
+当前主包之间的关系：
 
-另请参阅 [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md) 以获取供应商依赖项和归属说明。
+- `b2z1_b2_lowcmd`：依赖 `b2z1_b2_trajectories`、`unitree_go`、`unitree_api`
+- `b2z1_z1_control`：依赖 `b2z1_z1_trajectories` 和官方 `z1_bringup`
+- `b2z1_mujoco_bridge`：依赖 `b2z1_msgs`、`b2z1_b2_lowcmd`、`b2z1_b2_trajectories`
+- `b2z1_examples`：向 `b2z1_mujoco_bridge` 发布实验性 MuJoCo 验证命令
+- `b2z1_bringup`：统一提供真机与仿真的 launch 入口
+
+## 3. 从参考代码中复用的内容
+
+另请参阅 [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md) 以获取归属说明。
 
 本项目遵循以下原则：只要可行，就复用官方/参考实现，仅在组合后的 B2+Z1 MuJoCo 路径需要时添加自定义逻辑。
 
-### 2.1 直接从 `unitree_ros2` 复制或强力适配的内容
+### 3.1 与 `unitree_ros2` 强对齐的内容
 
 参考根目录：
 - `/home/liu/dwbc_ws/unitree_ws/src/unitree_ros2`
 
-主要复用部分：
-- [b2z1_b2_bridge/include/b2z1_b2_bridge/ros2_b2_sport_client.hpp](file:///home/liu/b2z1_ros2_ws/src/b2z1_b2_bridge/include/b2z1_b2_bridge/ros2_b2_sport_client.hpp)
-- [b2z1_b2_bridge/src/ros2_b2_sport_client.cpp](file:///home/liu/b2z1_ros2_ws/src/b2z1_b2_bridge/src/ros2_b2_sport_client.cpp)
-
-这些文件基于来自以下位置的官方 B2 运动客户端工具：
-- `unitree_ros2/example/src/include/common/ros2_b2_sport_client.h`
-- `unitree_ros2/example/src/src/common/ros2_b2_sport_client.cpp`
-
-B2 模式语义也遵循官方示例：
-- `balance_stand`（平衡站立）
-- `stand_down`（趴下/解除站立）
-- `damp`（阻尼模式）
-- `move`（移动）
-
-MuJoCo 桥接中的 B2 站立时序和阶段结构对齐自：
+MuJoCo 桥接中的 B2 lowcmd 起立时序和阶段结构主要对齐自：
 - `unitree_ros2/example/src/src/b2/b2_stand_example.cpp`
 
-### 2.2 直接从 `z1_ros2` 复制或强力适配的内容
+这种对齐主要体现在：
+- B2 多阶段起立时序，
+- 起立目标姿态组织，
+- 面向 lowcmd 的 B2 控制方向。
+
+### 3.2 直接从 `z1_ros2` 复制或强力适配的内容
 
 参考根目录：
 - `/home/liu/dwbc_ws/unitree_ws/src/z1_ros2`
@@ -66,7 +165,7 @@ MuJoCo 桥接中的 B2 站立时序和阶段结构对齐自：
 - `joint_trajectory_controller`
 - `FollowJointTrajectory`
 
-### 2.3 直接复制的外部模型资源
+### 3.3 直接复制的外部模型资源
 
 位于以下目录的 MuJoCo 模型资源：
 - `simulate/b2z1_mujoco`
@@ -76,23 +175,15 @@ MuJoCo 桥接中的 B2 站立时序和阶段结构对齐自：
 - 然后进行调整以满足宇树 MuJoCo 控制预期，
 - 并在需要时进一步对齐 Go2 场景模板约定。
 
-### 2.4 保留在此仓库中的供应商依赖项
-
-以下功能包被有意复制到此工作空间中，以便工作空间可以可重现地构建，而无需要求每个用户手动重建相同的子目录布局：
-- `src/unitree_api`
-
-来源谱系：
-- 复制自 `unitree_ros2/cyclonedds_ws/src/unitree/unitree_api`
-- 上游包元数据声明维护者为 `Unitree <unitree@unitree.com>`，许可证为 `BSD 3-Clause License`
-
-本仓库不声称拥有 `unitree_api` 的著作权；它作为供应商依赖项保留在此处。
-
-### 2.5 本工作空间中新增的自定义代码
+### 3.4 本工作空间中新增的自定义代码
 
 以下部分为本工作空间的自定义内容：
 - `b2z1_msgs`
-- `b2z1_coordinator`
-- [b2z1_examples](file:///home/liu/b2z1_ros2_ws/src/b2z1_examples/resource/b2z1_examples)
+- `b2z1_b2_lowcmd`
+- `b2z1_z1_control`
+- `b2z1_b2_trajectories`
+- `b2z1_z1_trajectories`
+- `b2z1_examples`
 - `b2z1_mujoco_bridge`
 - `b2z1_bringup`
 
@@ -101,18 +192,29 @@ MuJoCo 桥接中的 B2 站立时序和阶段结构对齐自：
 - 连接演示脚本到 MuJoCo 回路控制，
 - 为后续的高级策略/控制工作提供基础。
 
-## 3. 重要边界：MuJoCo 路径与真机路径
+## 4. 真机路径与仿真路径的关系
 
 ### MuJoCo 验证路径
 
-当前的 MuJoCo 演示大致执行流程如下：
+当前的 MuJoCo 验证大致执行流程如下：
 
-- [b2z1_examples](file:///home/liu/b2z1_ros2_ws/src/b2z1_examples/resource/b2z1_examples)
+- `b2z1_examples`
 - `b2z1_mujoco_bridge`
 - `rt/lowcmd`
 - `unitree_mujoco`
 
-对于 Z1，这意味着 MuJoCo 目前使用直接的底层 PD 风格命令执行。
+当前整理后的职责划分是：
+- `b2z1_b2_lowcmd`：B2 实机后端
+- `b2z1_z1_control`：Z1 实机后端
+- `b2z1_b2_trajectories`：B2 共享轨迹
+- `b2z1_z1_trajectories`：Z1 实机/仿真共享轨迹来源
+- `b2z1_mujoco_bridge`：MuJoCo 后端
+- `b2z1_examples`：仿真验证节点
+- `b2z1_bringup`：启动入口
+- `b2z1_msgs`：仿真消息
+
+对于 Z1，这意味着真机与仿真现在已经共享同一个官方 waypoint 来源，但 MuJoCo 仍然使用直接的底层 PD 风格命令执行。
+对于 B2，则意味着当前主线明确围绕 lowcmd 风格控制组织，而不是高层 sport client。
 
 ### 官方真机 Z1 路径
 
@@ -140,13 +242,15 @@ MuJoCo 桥接中的 B2 站立时序和阶段结构对齐自：
 
 
 
-## 4. 仅 MuJoCo 工作空间的依赖项
+## 5. 仅 MuJoCo 工作空间的依赖项
 
 要在另一台计算机上运行当前的 MuJoCo 演示，您至少需要：
 
 来自本工作空间：
+- `b2z1_b2_trajectories`
+- `b2z1_z1_trajectories`
 - `b2z1_msgs`
-- [b2z1_examples](file:///home/liu/b2z1_ros2_ws/src/b2z1_examples/resource/b2z1_examples)
+- `b2z1_examples`
 - `b2z1_mujoco_bridge`
 - `b2z1_bringup`
 - `simulate/b2z1_mujoco`
@@ -154,101 +258,106 @@ MuJoCo 桥接中的 B2 站立时序和阶段结构对齐自：
 外部依赖项：
 - 单独安装的 `unitree_rl_mjlab` 提供 `unitree_mujoco`
 
-真机工作的可选依赖项：
-- `b2z1_b2_bridge`
-- `b2z1_coordinator`
-- `unitree_api`
+真机工作的外部依赖项：
 - 官方 `z1_ros2` 包
 
-## 5. 构建说明
+## 6. 构建说明
 
-### 5.1 通用构建
+### 6.1 通用构建
 
 ```bash
 cd ~/b2z1_ros2_ws
 source /opt/ros/humble/setup.bash
 colcon build --cmake-args -DPython3_EXECUTABLE=/usr/bin/python3
 source install/setup.bash
-
+```
 
 如果 conda 处于激活状态，建议先退出：
-
 
 ```bash
 conda deactivate
 ```
 
-## 6. MuJoCo 使用方法
+## 7. MuJoCo 使用方法
 
-### 6.1 启动 Unitree MuJoCo
+### 7.1 启动 Unitree MuJoCo
 
 假设 unitree_rl_mjlab 已安装在机器的其他位置：
 
 ```bash
 cd /path/to/unitree_rl_mjlab/simulate/build
-./unitree_mujoco --network lo --robot b2 --scene /home/liu/b2z1_ros2_ws/src/simulate/b2z1_mujoco/xmls/b2z1_ctrl_stage1.xml
+./unitree_mujoco --network lo --robot b2 --scene /home/liu/b2z1_ros2_ws/src/sim/mujoco/simulate/b2z1_mujoco/xmls/b2z1_ctrl_stage1.xml
 ```
 
 Note:
 - 在 unitree_rl_mjlab/simulate/config.yaml 中，除非实际可用手柄，否则建议设置 use_joystick: 0。
 
-### 6.2 运行 B2 站立演示
-另开终端：
+### 7.2 运行 MuJoCo 验证入口
+
 ```bash
 cd ~/b2z1_ros2_ws
 source /opt/ros/humble/setup.bash
 source install/setup.bash
-ros2 launch b2z1_bringup b2_only_stand.launch.py network_interface:=lo
+ros2 launch b2z1_bringup b2_stand_validation_sim.launch.py network_interface:=lo
 ```
-
-### 6.3 运行 B2 stand-then-down demo（两个差不多）
 
 ```bash
-ros2 launch b2z1_bringup b2_only_stand_then_down.launch.py network_interface:=lo
+ros2 launch b2z1_bringup z1_waypoint_validation_sim.launch.py network_interface:=lo
 ```
 
-### 6.4 运行 Z1-only reach demo
+验证目标：
+
+- `b2_stand_validation_sim.launch.py`
+  - 验证 B2 真机 lowcmd 站立路径的控制语义
+- `z1_waypoint_validation_sim.launch.py`
+  - 验证 Z1 真机 waypoint 路径的姿态与时序语义
+
+## 8. 真机方向
+
+### 8.1 B2 真机 lowcmd 站立测试
+
+直接真机 lowcmd launch 为：
 
 ```bash
-ros2 launch b2z1_bringup z1_only_reach.launch.py network_interface:=lo
+ros2 launch b2z1_bringup real/b2_real_lowcmd_stand.launch.py
 ```
 
-## 7. 真机使用方法
+另外保留了一个简化别名入口，效果相同：
 
-### 7.1 B2 真机
+```bash
+ros2 launch b2z1_bringup b2_stand.launch.py
+```
 
-对于真实的 B2 使用，请优先使用官方宇树路径和语义：
-- official `unitree_ros2` examples,
-- `unitree_api`,
-- sport client semantics.
+### 8.2 B2 真机定位
 
-本工作空间包含：
-- `b2z1_b2_bridge`
+本工作空间对 B2 的目标方向是基于 lowcmd 的真机控制，而不是高层 sport client 路径。
 
-其意图是作为一个薄桥接层，而非替代官方 B2 通信语义。
+也就是说，本仓库更适合作为以下工作的基础：
+- 面向关节角的 B2 控制，
+- 后续策略直接输出关节空间目标，
+- 尽量缩小仿真执行层和未来低层真机控制层之间的风格差异。
 
-### 7.2 Z1 真机
+### 8.3 Z1 真机
 
-对于真实的 Z1 使用，请优先使用官方 z1_ros2 堆栈：:
+对于真实的 Z1 使用，请优先使用官方 `z1_ros2` 堆栈：
 - `z1_bringup`
 - `z1_hardware_interface`
 - `joint_trajectory_controller`
 - `FollowJointTrajectory`
 
-The current MuJoCo demos should be treated as:
-- 结构的验证，
-- 关键点选择的验证，
-- 高级控制组织的验证，
+当前 MuJoCo 演示更适合被看作：
+- 结构验证，
+- 关键点选择验证，
+- lowcmd 风格仿真验证，
 
 而不是真机行为的最终证明。
 
 
-## 8. 已知的 MuJoCo 特定适配
+## 9. 已知的 MuJoCo 特定适配
 
 代码试图最小化自定义行为，但为了稳定性仍保留了一些仅针对 MuJoCo 的适配：
-- `ground_support` for B2 during Z1-only validation,
-- a `gentle retract` stage in the Z1-only demo,
-- small protective adaptations in the B2 MuJoCo stand path to avoid instability in the combined B2+Z1 model.
+- `ground_support`：用于 Z1-only 验证时给 B2 提供轻支撑，
+- `gentle retract`：用于 Z1-only 演示中的回收过渡，
+- B2 MuJoCo 起立路径中少量保护性适配，用于避免组合 B2+Z1 模型中的不稳定。
 
 这些是有意为之的仿真适配，不应与最终的真机执行链混淆。
-

@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>b2z1_z1_control</name>
+  <version>0.0.1</version>
+  <description>Z1 real-robot control package aligned with official z1_ros2 waypoint execution.</description>
+  <maintainer email="liu@example.com">liu</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>trajectory_msgs</exec_depend>
+  <exec_depend>control_msgs</exec_depend>
+  <exec_depend>z1_bringup</exec_depend>
+  <exec_depend>b2z1_z1_trajectories</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

@@ -1,0 +1,9 @@
+b2z1_mujoco_bridge_node:
+  ros__parameters:
+    network_interface: "lo"
+    ramp_duration_sec: 3.5
+    ground_support_kp_scale: 0.28
+    ground_support_kd_scale: 0.45
+    z1_home_q: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    z1_kp_by_joint: [100.0, 100.0, 100.0, 100.0, 10.0, 10.0]
+    z1_kd_by_joint: [10.0, 10.0, 10.0, 5.0, 1.0, 1.0]

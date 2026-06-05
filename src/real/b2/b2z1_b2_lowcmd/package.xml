@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>b2z1_b2_lowcmd</name>
+  <version>0.0.1</version>
+  <description>Official-style B2 lowcmd control package for real-robot use and shared low-level stand logic.</description>
+  <maintainer email="liu@example.com">liu</maintainer>
+  <license>BSD-3-Clause</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>unitree_go</depend>
+  <depend>unitree_api</depend>
+  <depend>nlohmann_json</depend>
+  <depend>b2z1_b2_trajectories</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

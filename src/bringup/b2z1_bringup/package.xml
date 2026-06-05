@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>b2z1_bringup</name>
+  <version>0.0.1</version>
+  <description>Bringup package with separated MuJoCo simulation and real-robot lowcmd launch entrypoints.</description>
+  <maintainer email="liu@example.com">liu</maintainer>
+  <license>BSD-3-Clause</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>b2z1_examples</exec_depend>
+  <exec_depend>b2z1_mujoco_bridge</exec_depend>
+  <exec_depend>b2z1_b2_lowcmd</exec_depend>
+  <exec_depend>b2z1_z1_control</exec_depend>
+  <exec_depend>z1_bringup</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

@@ -1,173 +1,256 @@
 # B2Z1 ROS2 Workspace
 
-This workspace contains a lightweight ROS2 control skeleton for Unitree B2 + Z1, plus a MuJoCo validation path used to verify command flow, poses, and demo behavior before real-robot testing.
+This workspace is currently organized around two separate mainlines:
 
-The current repository intentionally separates two concerns:
+- `Real robot`: B2 and Z1 execution paths that stay close to official code
+- `Simulation`: a MuJoCo validation path used to observe expected control effects
 
-- MuJoCo validation: fast iteration for B2-only and Z1-only demos.
-- Real robot integration: reuse official Unitree code paths as much as possible.
+`B2Z1` combined control is intentionally **out of scope for the current mainline**.
 
-## 1. Repository Scope
+## 1. Mainlines
 
-The main packages in this workspace are:
+### 1.1 Real-robot mainline
 
-- `b2z1_msgs`: custom ROS2 message definitions.
-- `b2z1_b2_bridge`: B2 command bridge.
-- `b2z1_coordinator`: optional coordinator node for future unified command routing.
-- `b2z1_examples`: demo scripts for B2-only and Z1-only validation.
-- `b2z1_mujoco_bridge`: bridge from ROS2 demo commands to MuJoCo low-level commands.
-- `b2z1_bringup`: launch files for MuJoCo validation demos.
-- `simulate/b2z1_mujoco`: B2Z1 MuJoCo scene and assets.
-- `unitree_api`: vendored dependency copied from the official Unitree ROS2 workspace and kept here for reproducible local builds.
+Purpose:
 
-## 2. What Was Reused From Reference Code
+- keep the B2 real low-level path clear and usable
+- keep the Z1 real trajectory-control path clear and usable
 
-See also [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md) for vendored dependency and attribution notes.
+Packages mainly used by the real-robot path:
 
-The project tries to follow the principle: reuse official/reference implementations whenever practical, and only add custom logic where the combined B2+Z1 MuJoCo path requires it.
+- `real/b2/b2z1_b2_lowcmd`
+- `real/z1/b2z1_z1_control`
+- `shared/b2/b2z1_b2_trajectories`
+- `shared/z1/b2z1_z1_trajectories`
+- `bringup/b2z1_bringup`
+- `third_party/unitree/unitree_go`
+- `third_party/unitree/unitree_api`
 
-### 2.1 Directly copied or strongly adapted from `unitree_ros2`
+Real-robot launch entrypoints:
 
-Reference root:
-- `/home/liu/dwbc_ws/unitree_ws/src/unitree_ros2`
+- `ros2 launch b2z1_bringup real/b2_real_lowcmd_stand.launch.py`
+- `ros2 launch b2z1_bringup b2_stand.launch.py`
+- `ros2 launch b2z1_bringup real/z1_real_waypoint.launch.py`
+- `ros2 launch b2z1_bringup z1_reach.launch.py`
 
-Main reused pieces:
-- `b2z1_b2_bridge/include/b2z1_b2_bridge/ros2_b2_sport_client.hpp`
-- `b2z1_b2_bridge/src/ros2_b2_sport_client.cpp`
+### 1.2 MuJoCo simulation mainline
 
-These files are based on the official B2 sport client utilities from:
-- `unitree_ros2/example/src/include/common/ros2_b2_sport_client.h`
-- `unitree_ros2/example/src/src/common/ros2_b2_sport_client.cpp`
+Purpose:
 
-The B2 mode semantics also follow the official examples:
-- `balance_stand`
-- `stand_down`
-- `damp`
-- `move`
+- validate command flow before real-robot testing
+- validate poses, timing, and validation behavior in MuJoCo
 
-B2 stand timing and stage structure in the MuJoCo bridge were aligned against:
-- `unitree_ros2/example/src/src/b2/b2_stand_example.cpp`
+Packages mainly used by the simulation path:
 
-### 2.2 Directly copied or strongly adapted from `z1_ros2`
+- `sim/mujoco/b2z1_mujoco_bridge`
+- `sim/mujoco/b2z1_examples`
+- `sim/mujoco/simulate/b2z1_mujoco`
+- `shared/common/b2z1_msgs`
+- `shared/b2/b2z1_b2_trajectories`
+- `shared/z1/b2z1_z1_trajectories`
+- `bringup/b2z1_bringup`
 
-Reference root:
+Simulation launch entrypoints:
+
+- `ros2 launch b2z1_bringup b2_stand_validation_sim.launch.py network_interface:=lo`
+- `ros2 launch b2z1_bringup z1_waypoint_validation_sim.launch.py network_interface:=lo`
+- internally this resolves to `launch/mujoco/*`
+
+### 1.3 Important boundary
+
+This repository does **not** currently implement a complete `B2Z1` combined-control mainline.
+
+The current mainline is narrower:
+
+- B2 real control
+- Z1 real control
+- MuJoCo validation of those control meanings
+
+## 2. Current Package Structure
+
+Workspace tree:
+
+```text
+src/
+├── bringup/
+│   └── b2z1_bringup
+├── real/
+│   ├── b2/
+│   │   └── b2z1_b2_lowcmd
+│   └── z1/
+│       └── b2z1_z1_control
+├── shared/
+│   ├── b2/
+│   │   └── b2z1_b2_trajectories
+│   ├── common/
+│   │   └── b2z1_msgs
+│   └── z1/
+│       └── b2z1_z1_trajectories
+├── sim/
+│   └── mujoco/
+│       ├── b2z1_examples
+│       ├── b2z1_mujoco_bridge
+│       └── simulate/b2z1_mujoco
+├── third_party/
+│   └── unitree/
+│       ├── unitree_api
+│       └── unitree_go
+└── legacy/
+    └── b2z1_coordinator
+```
+
+Current layering:
+
+- `bringup/`: launch entrypoints only
+- `real/`: real-robot execution backends
+- `shared/`: reusable motion definitions and message interfaces
+- `sim/`: MuJoCo-facing execution and validation entrypoints
+- `third_party/`: vendored upstream dependencies
+- `legacy/`: old combined-control experiments kept out of the mainline
+
+### 2.1 Real backends
+
+- `b2z1_b2_lowcmd`
+  - B2 real-robot backend
+  - official-style `lowcmd` execution path
+  - aligned with the Unitree B2 low-level stand example
+
+- `b2z1_z1_control`
+  - Z1 real-robot backend
+  - official-style `FollowJointTrajectory` execution path
+  - aligned with the official `z1_ros2` waypoint example
+
+### 2.2 Shared trajectory layers
+
+- `b2z1_b2_trajectories`
+  - shared B2 stand trajectory definition and timing
+
+- `b2z1_z1_trajectories`
+  - shared Z1 waypoint sequences for simulation-side use
+
+### 2.3 Simulation backend
+
+- `b2z1_mujoco_bridge`
+  - MuJoCo backend
+  - receives experimental MuJoCo demo ROS2 commands
+  - publishes `rt/lowcmd`
+  - subscribes `rt/lowstate`
+
+- `simulate/b2z1_mujoco`
+  - MuJoCo XML scene files and model assets
+
+### 2.4 Validation and entrypoint packages
+
+- `b2z1_examples`
+  - simulation-side validation nodes
+  - currently keeps `b2_stand_validation` and `z1_waypoint_validation`
+
+- `b2z1_bringup`
+  - launch entry organization
+  - `launch/real`
+  - `launch/mujoco`
+
+### 2.5 Support packages
+
+- `b2z1_msgs`
+  - simulation-side ROS2 messages for the current validation path
+
+- `unitree_go`
+  - vendored official Unitree message package
+
+- `unitree_api`
+  - vendored official Unitree API package
+
+Main package relationships:
+
+- `b2z1_b2_lowcmd` depends on `b2z1_b2_trajectories`, `unitree_go`, and `unitree_api`
+- `b2z1_z1_control` depends on `b2z1_z1_trajectories` and official `z1_bringup`
+- `b2z1_mujoco_bridge` depends on `b2z1_msgs`, `b2z1_b2_lowcmd`, and `b2z1_b2_trajectories`
+- `b2z1_examples` publishes experimental MuJoCo validation commands to `b2z1_mujoco_bridge`
+- `b2z1_bringup` is the top-level launch entry for both real and simulation flows
+
+## 3. Reuse From Official Reference Code
+
+See also [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
+
+The guiding rule for this workspace is:
+
+- reuse official code directly when practical
+- keep custom code as thin as possible when direct reuse is not enough
+
+### 3.1 B2 references
+
+Primary B2 reference:
+
+- `/home/liu/dwbc_ws/unitree_ws/src/unitree_ros2/example/src/src/b2/b2_stand_example.cpp`
+
+This reference drives:
+
+- the `lowcmd` direction for B2 real control
+- the multi-stage stand timing structure
+- the stand target posture organization
+- the release of conflicting motion-control mode before low-level execution
+
+Several helper files in `b2z1_b2_lowcmd` were copied directly from official Unitree code and only minimally adjusted for package/include layout.
+
+### 3.2 Z1 references
+
+Primary Z1 reference root:
+
 - `/home/liu/dwbc_ws/unitree_ws/src/z1_ros2`
 
-Main reused ideas:
-- Z1 joint naming and ordering are kept consistent with `z1_ros2`.
-- Z1 pose waypoints used in demos are aligned with `z1_ros2/z1_examples/z1_examples/waypoint_test.py` wherever possible:
-  - `home`
-  - `reach`
-  - `wrist pose`
+The real-robot Z1 direction is aligned with:
 
-For real robot usage, the intended official path remains:
 - `z1_bringup`
 - `z1_hardware_interface`
 - `joint_trajectory_controller`
 - `FollowJointTrajectory`
+- `z1_ros2/z1_examples/z1_examples/waypoint_test.py`
 
-### 2.3 Directly copied external model assets
+The following file in this workspace was copied from the official Z1 example and only minimally adjusted for package naming:
 
-MuJoCo model resources in:
-- `simulate/b2z1_mujoco`
+- `b2z1_z1_control/b2z1_z1_control/z1_waypoint_test.py`
 
-These were copied from earlier B2Z1 model work and then adapted for Unitree MuJoCo loopback validation. In particular:
-- the base B2Z1 model/assets were copied from an earlier training/legacy model source,
-- then adjusted to satisfy Unitree MuJoCo control expectations,
-- and further aligned against the Go2 scene template conventions where needed.
+## 4. Real vs Simulation Relationship
 
-### 2.4 Vendored dependency retained in this repository
+The intended design is:
 
-The following package is copied into this workspace intentionally so the workspace can be built reproducibly without asking every user to reconstruct the same subdirectory layout by hand:
-- `src/unitree_api`
+- shared motion meaning
+- different execution targets
 
-Source lineage:
-- copied from `unitree_ros2/cyclonedds_ws/src/unitree/unitree_api`
-- upstream package metadata declares maintainer `Unitree <unitree@unitree.com>` and license `BSD 3-Clause License`
+For B2, this is already fairly clean:
 
-This repository does not claim authorship of `unitree_api`; it is retained here as a vendored dependency.
+- shared trajectory in `b2z1_b2_trajectories`
+- real execution in `b2z1_b2_lowcmd`
+- MuJoCo execution in `b2z1_mujoco_bridge`
 
-### 2.4 Newly added custom code in this workspace
+For Z1, this is partly clean:
 
-The following parts are custom to this workspace:
-- `b2z1_msgs`
-- `b2z1_coordinator`
-- `b2z1_examples`
-- `b2z1_mujoco_bridge`
-- `b2z1_bringup`
+- real execution in `b2z1_z1_control`
+- shared waypoint source in `b2z1_z1_trajectories`
+- MuJoCo execution still goes through a lowcmd/PD-style adapter
 
-These are not official upstream files. They were added to:
-- organize the workspace into ROS2 packages,
-- connect demo scripts to MuJoCo loopback control,
-- provide a future base for higher-level policy/control work.
+That means:
 
-## 3. Important Boundary: MuJoCo Path vs Real Robot Path
+- the real-robot Z1 path and the simulation path now share the same official waypoint source
+- execution behavior is still not identical, because the real robot uses `joint_trajectory_controller` while MuJoCo still uses a lowcmd/PD-style adapter
 
-### MuJoCo validation path
-
-The current MuJoCo demos execute roughly as:
-
-- `b2z1_examples`
-- `b2z1_mujoco_bridge`
-- `rt/lowcmd`
-- `unitree_mujoco`
-
-For Z1, this means MuJoCo currently uses direct low-level PD-style command execution.
-
-### Official real robot Z1 path
-
-The official validated Z1 stack in `z1_ros2` executes through:
-
-- trajectory/action command
-- `joint_trajectory_controller`
-- hardware interface
-- real robot
-
-This is the reason the MuJoCo demo path is **not identical** to `z1_ros2` execution, even when the waypoint poses are aligned.
-
-### What this means
+## 5. What MuJoCo Validation Proves
 
 Current MuJoCo validation **does prove**:
-- workspace/package structure is sound,
-- command definitions are reasonable,
-- demo logic and pose organization are usable,
-- the codebase is a practical base for later policy-control work.
+
+- the package structure is workable
+- the command flow is sensible
+- the B2 low-level direction is reasonable
+- the codebase is a practical base for later policy-control work
 
 Current MuJoCo validation **does not fully prove**:
-- identical behavior on the real robot,
-- full equivalence to `z1_ros2` trajectory-controller execution,
-- final real-robot safety.
 
-## 3.5 Upload policy for this repository
+- identical real-robot behavior
+- full equivalence to the official `z1_ros2` trajectory-controller execution
+- final real-robot safety
 
-This repository keeps a small amount of copied upstream code on purpose when it improves reproducibility. In particular:
-- `src/unitree_api` is intentionally committed as a vendored dependency
-- upstream references are documented in this README and in `THIRD_PARTY_NOTICES.md`
-- custom packages in this repository remain the primary authored content
-
-## 4. MuJoCo-Only Workspace Dependencies
-
-To run the current MuJoCo demos on another computer, you minimally need:
-
-From this workspace:
-- `b2z1_msgs`
-- `b2z1_examples`
-- `b2z1_mujoco_bridge`
-- `b2z1_bringup`
-- `simulate/b2z1_mujoco`
-
-External dependency:
-- a separately installed `unitree_rl_mjlab` providing `unitree_mujoco`
-
-Optional for real robot work:
-- `b2z1_b2_bridge`
-- `b2z1_coordinator`
-- `unitree_api`
-- official `z1_ros2` packages
-
-## 5. Build Instructions
-
-### 5.1 General build
+## 6. Build
 
 ```bash
 cd ~/b2z1_ros2_ws
@@ -182,86 +265,94 @@ If conda is active, it is safer to leave it first:
 conda deactivate
 ```
 
-## 6. MuJoCo Usage
+## 7. Real-Robot Usage
 
-### 6.1 Start Unitree MuJoCo
+### 7.1 B2 real lowcmd
 
-Assuming `unitree_rl_mjlab` is installed elsewhere on the machine:
+Direct launch:
+
+```bash
+ros2 launch b2z1_bringup real/b2_real_lowcmd_stand.launch.py
+```
+
+Convenience alias:
+
+```bash
+ros2 launch b2z1_bringup b2_stand.launch.py
+```
+
+This path:
+
+- reads `/lowstate`
+- publishes `/lowcmd`
+- calls `ReleaseMode()`
+- executes the shared B2 stand trajectory
+
+### 7.2 Z1 real waypoint test
+
+Direct launch:
+
+```bash
+ros2 launch b2z1_bringup real/z1_real_waypoint.launch.py
+```
+
+Convenience alias:
+
+```bash
+ros2 launch b2z1_bringup z1_reach.launch.py
+```
+
+This path:
+
+- starts `z1_bringup`
+- uses `joint_trajectory_controller`
+- sends the default waypoint sequence through `FollowJointTrajectory`
+
+## 8. MuJoCo Usage
+
+### 8.1 Start Unitree MuJoCo
+
+Assuming `unitree_rl_mjlab` is installed elsewhere:
 
 ```bash
 cd /path/to/unitree_rl_mjlab/simulate/build
-./unitree_mujoco --network lo --robot b2 --scene /home/liu/b2z1_ros2_ws/src/simulate/b2z1_mujoco/xmls/b2z1_ctrl_stage1.xml
+./unitree_mujoco --network lo --robot b2 --scene /home/liu/b2z1_ros2_ws/src/sim/mujoco/simulate/b2z1_mujoco/xmls/b2z1_ctrl_stage1.xml
 ```
 
-Note:
-- in `unitree_rl_mjlab/simulate/config.yaml`, `use_joystick: 0` is recommended unless a joystick is actually available.
+Recommended setting in `unitree_rl_mjlab/simulate/config.yaml`:
 
-### 6.2 Run B2-only stand demo
+- `use_joystick: 0`
+
+### 8.2 Run the current MuJoCo validations
 
 ```bash
 cd ~/b2z1_ros2_ws
 source /opt/ros/humble/setup.bash
 source install/setup.bash
-ros2 launch b2z1_bringup b2_only_stand.launch.py network_interface:=lo
+ros2 launch b2z1_bringup b2_stand_validation_sim.launch.py network_interface:=lo
 ```
-
-### 6.3 Run B2 stand-then-down demo
 
 ```bash
-ros2 launch b2z1_bringup b2_only_stand_then_down.launch.py network_interface:=lo
+ros2 launch b2z1_bringup z1_waypoint_validation_sim.launch.py network_interface:=lo
 ```
 
-### 6.4 Run Z1-only reach demo
+Validation targets:
 
-```bash
-ros2 launch b2z1_bringup z1_only_reach.launch.py network_interface:=lo
-```
+- `b2_stand_validation_sim.launch.py`
+  - validates the B2 stand semantics used by the real lowcmd path
+- `z1_waypoint_validation_sim.launch.py`
+  - validates the Z1 waypoint semantics used by the real waypoint path
 
-## 7. Real Robot Usage
+Internally these resolve to the simulation launch layer under `launch/mujoco`.
 
-### 7.1 B2 real robot direction
+## 9. Current MuJoCo-Specific Adaptations
 
-For real B2 usage, prefer the official Unitree path and semantics:
-- official `unitree_ros2` examples,
-- `unitree_api`,
-- sport client semantics.
+To keep the current simulation stable, a few **simulation-only** adaptations are still kept:
 
-This workspace contains:
-- `b2z1_b2_bridge`
+- `ground_support`
+  - gives B2 light support during `Z1`-only simulation
 
-which is intended as a thin bridge layer, not a replacement for official B2 communication semantics.
+- `gentle retract`
+  - smooths the Z1 return motion in simulation
 
-### 7.2 Z1 real robot direction
-
-For real Z1 usage, prefer the official `z1_ros2` stack:
-- `z1_bringup`
-- `z1_hardware_interface`
-- `joint_trajectory_controller`
-- `FollowJointTrajectory`
-
-The current MuJoCo demos should be treated as:
-- validation of structure,
-- validation of waypoint choices,
-- validation of high-level control organization,
-
-rather than final proof of real robot behavior.
-
-## 8. Why This Workspace Is Still Useful For Future Policy Control
-
-This workspace is already a reasonable base layer for later policy-control work because it provides:
-- explicit ROS2 package boundaries,
-- a message layer (`b2z1_msgs`),
-- demo entry points (`b2z1_examples`),
-- a MuJoCo execution bridge (`b2z1_mujoco_bridge`),
-- launch organization (`b2z1_bringup`).
-
-A future policy can therefore be added above this layer without rewriting the whole workspace.
-
-## 9. Known MuJoCo-Specific Adaptations
-
-The code tries to minimize custom behavior, but a few MuJoCo-only adaptations remain for stability:
-- `ground_support` for B2 during Z1-only validation,
-- a `gentle retract` stage in the Z1-only demo,
-- small protective adaptations in the B2 MuJoCo stand path to avoid instability in the combined B2+Z1 model.
-
-These are intentional simulation adaptations and should not be confused with the final real-robot execution chain.
+These are intentional MuJoCo adaptations and should not be confused with the final real-robot control logic.
