@@ -1,1 +1,0 @@
-from b2z1_examples.z1_waypoint_validation import main

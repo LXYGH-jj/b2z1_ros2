@@ -1,0 +1,10 @@
+repositories:
+  z1_ros2:
+    type: git
+    url: https://github.com/idra-lab/z1_ros2.git
+    version: d2462f735bd20cfd45c22692f9ddfbc3c7bb1cd5
+
+  unitree_ros2:
+    type: git
+    url: https://github.com/unitreerobotics/unitree_ros2.git
+    version: d80130f6ae44f54e1ac6d9c780e6f78ef48f0770

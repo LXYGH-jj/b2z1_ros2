@@ -8,3 +8,8 @@ __pycache__/
 .vscode/
 .idea/
 .DS_Store
+/src/z1_ros2/
+/src/unitree_ros2/
+/src/docs/
+/src/logs/
+/z1_logs/
