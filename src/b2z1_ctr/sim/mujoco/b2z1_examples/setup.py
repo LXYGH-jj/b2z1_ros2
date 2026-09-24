@@ -19,6 +19,7 @@ setup(
     entry_points={
         "console_scripts": [
             "b2_stand_validation = b2z1_examples.b2_stand_validation:main",
+            "b2z1_joint_validation = b2z1_examples.b2z1_joint_validation:main",
             "z1_waypoint_validation = b2z1_examples.z1_waypoint_validation:main",
         ],
     },

@@ -2,7 +2,7 @@
 <package format="3">
   <name>b2z1_examples</name>
   <version>0.0.1</version>
-  <description>MuJoCo validation entrypoints for B2 stand and Z1 waypoint semantics.</description>
+  <description>MuJoCo validation entrypoints for B2, Z1, and combined command semantics.</description>
   <maintainer email="liu@example.com">liu</maintainer>
   <license>BSD-3-Clause</license>
 

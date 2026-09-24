@@ -23,13 +23,13 @@ Packages mainly used by the real-robot path:
 - `shared/b2/b2z1_b2_trajectories`
 - `shared/z1/b2z1_z1_trajectories`
 - `bringup/b2z1_bringup`
-- `third_party/unitree/unitree_go`
-- `third_party/unitree/unitree_api`
+- `../unitree_ros2/cyclonedds_ws/src/unitree/unitree_go`
+- `../unitree_ros2/cyclonedds_ws/src/unitree/unitree_api`
 
 Real-robot launch entrypoints:
 
-- `ros2 launch b2z1_bringup real/b2_real_lowcmd_stand.launch.py`
-- `ros2 launch b2z1_bringup real/z1_real_waypoint.launch.py`
+- `ros2 launch b2z1_bringup b2_real_lowcmd_stand.launch.py`
+- `ros2 launch b2z1_bringup z1_real_waypoint.launch.py`
 
 ### 1.2 MuJoCo simulation mainline
 
@@ -52,6 +52,7 @@ Simulation launch entrypoints:
 
 - `ros2 launch b2z1_bringup b2_stand_validation_sim.launch.py network_interface:=lo`
 - `ros2 launch b2z1_bringup z1_waypoint_validation_sim.launch.py network_interface:=lo`
+- `ros2 launch b2z1_bringup b2z1_joint_validation_sim.launch.py network_interface:=lo`
 - internally this resolves to `launch/mujoco/*`
 
 ### 1.3 Important boundary
@@ -70,31 +71,28 @@ Workspace tree:
 
 ```text
 src/
-├── bringup/
-│   └── b2z1_bringup
-├── real/
-│   ├── b2/
-│   │   └── b2z1_b2_lowcmd
-│   └── z1/
-│       └── b2z1_z1_control
-├── shared/
-│   ├── b2/
-│   │   └── b2z1_b2_trajectories
-│   ├── common/
-│   │   └── b2z1_msgs
-│   └── z1/
-│       └── b2z1_z1_trajectories
-├── sim/
-│   └── mujoco/
-│       ├── b2z1_examples
-│       ├── b2z1_mujoco_bridge
-│       └── simulate/b2z1_mujoco
-├── third_party/
-│   └── unitree/
-│       ├── unitree_api
-│       └── unitree_go
-└── legacy/
-    └── b2z1_coordinator
+├── b2z1_ctr/
+│   ├── bringup/
+│   │   └── b2z1_bringup
+│   ├── real/
+│   │   ├── b2/
+│   │   │   └── b2z1_b2_lowcmd
+│   │   └── z1/
+│   │       └── b2z1_z1_control
+│   ├── shared/
+│   │   ├── b2/
+│   │   │   └── b2z1_b2_trajectories
+│   │   ├── common/
+│   │   │   └── b2z1_msgs
+│   │   └── z1/
+│   │       └── b2z1_z1_trajectories
+│   └── sim/
+│       └── mujoco/
+│           ├── b2z1_examples
+│           ├── b2z1_mujoco_bridge
+│           └── simulate/b2z1_mujoco
+├── unitree_ros2/          # fetched from the root .repos file; Git-ignored
+└── z1_ros2/               # fetched from the root .repos file; Git-ignored
 ```
 
 Current layering:
@@ -103,8 +101,7 @@ Current layering:
 - `real/`: real-robot execution backends
 - `shared/`: reusable motion definitions and message interfaces
 - `sim/`: MuJoCo-facing execution and validation entrypoints
-- `third_party/`: vendored upstream dependencies
-- `legacy/`: old combined-control experiments kept out of the mainline
+- `unitree_ros2/`, `z1_ros2/`: pinned upstream dependencies from `b2z1_dependencies.repos`
 
 ### 2.1 Real backends
 
@@ -270,7 +267,7 @@ conda deactivate
 Direct launch:
 
 ```bash
-ros2 launch b2z1_bringup real/b2_real_lowcmd_stand.launch.py
+ros2 launch b2z1_bringup b2_real_lowcmd_stand.launch.py
 ```
 
 This path:
@@ -285,7 +282,7 @@ This path:
 Direct launch:
 
 ```bash
-ros2 launch b2z1_bringup real/z1_real_waypoint.launch.py
+ros2 launch b2z1_bringup z1_real_waypoint.launch.py
 ```
 
 ## 8. MuJoCo Usage
@@ -296,7 +293,7 @@ Assuming `unitree_rl_mjlab` is installed elsewhere:
 
 ```bash
 cd /path/to/unitree_rl_mjlab/simulate/build
-./unitree_mujoco --network lo --robot b2 --scene /home/liu/b2z1_ros2_ws/src/sim/mujoco/simulate/b2z1_mujoco/xmls/b2z1_ctrl_stage1.xml
+./unitree_mujoco --network lo --robot b2 --scene /home/liu/b2z1_ros2_ws/src/b2z1_ctr/sim/mujoco/simulate/b2z1_mujoco/xmls/b2z1_ctrl_stage1.xml
 ```
 
 Recommended setting in `unitree_rl_mjlab/simulate/config.yaml`:
@@ -314,6 +311,12 @@ ros2 launch b2z1_bringup b2_stand_validation_sim.launch.py network_interface:=lo
 
 ```bash
 ros2 launch b2z1_bringup z1_waypoint_validation_sim.launch.py network_interface:=lo
+```
+
+Combined B2+Z1 validation:
+
+```bash
+ros2 launch b2z1_bringup b2z1_joint_validation_sim.launch.py network_interface:=lo
 ```
 
 Validation targets:
